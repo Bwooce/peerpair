@@ -3,7 +3,7 @@ Application level network connectivity (and latency) alarming, using
 UDP for point to point testing, and etcd as a central kv store for the
 tests. Sends SNMP traps.
 
-##Principles
+## Principles
 * One-way testing, everyone should be ntp-synced.
 
 One way testing is better as many of the configurations we're testing
@@ -32,7 +32,7 @@ It's old, it's a bit awful, but it's widely supported and commonly
 found. The code can be extended to other alarming types. SNMPv2c only
 for now, the security/DDoS risk will need to be managed in your environment.
 
-##Requirments
+## Requirments
 
 * An etcd cluster, with a v2 interface (JSON) enabled.
 * The ability to run the peerpair client on each machine, and have the ports
@@ -40,5 +40,5 @@ opened towards each peer, and also access to the etcd cluster
 * An SNMP Trap agent, something like net-snmp's snmptrapd will work
 will if you don't already have HPOV or something of that ilk.
 
-##Detailed Instructions
+## Detailed Instructions
 (to follow)
