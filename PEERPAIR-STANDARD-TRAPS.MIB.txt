@@ -1,0 +1,88 @@
+PEERPAIRTRAP-MIB DEFINITIONS ::= BEGIN
+
+                 IMPORTS
+    enterprises, MODULE-IDENTITY, OBJECT-TYPE, Integer32,
+    NOTIFICATION-TYPE                       FROM SNMPv2-SMI
+              sysUpTime
+                   FROM RFC1213-MIB;
+
+--peerpair OBJECT IDENTIFIER ::= { enterprises 50255 }
+
+peerpair MODULE-IDENTITY
+    LAST-UPDATED "201706250000Z"
+    ORGANIZATION "peerpair"
+    CONTACT-INFO
+          "email:   bruce@fitzsimons.org"
+    DESCRIPTION
+	"Peerpair connection monitoring traps"
+    ::= { enterprises 50255 }
+
+peerpairTraps OBJECT IDENTIFIER ::= { peerpair 1 }
+
+          -- The standard traps 
+
+          coldStart NOTIFICATION-TYPE
+              ENTERPRISE  peerpair
+              VARIABLES   { hostname, sysUpTime }
+              DESCRIPTION "A coldStart trap signifies that the sending
+                          protocol entity is reinitializing itself such
+                          that the agent's configuration or the protocol
+                          entity implementation may be altered."
+              ::= { peerpairTraps 0 }
+
+    -- PeerPair Private Enterprise Traps
+
+          connectionDown NOTIFICATION-TYPE
+              ENTERPRISE  peerpair
+              VARIABLES   { hostname, localIPAddress, localPort, remoteIPAddress,
+                          remotePort, connectionDescription, failureType }
+              DESCRIPTION
+                          "A connectionDown trap signifies that the sending
+                          protocol entity has not had contact from its peer
+                          within the required response time, and should be
+                          considered down. The business purpose for the
+                          connection is included in the message"
+              ::= { peerpairTraps 1 }
+
+          connectionUp NOTIFICATION-TYPE
+              ENTERPRISE  peerpair
+              VARIABLES   { hostname, localIPAddress, localPort, remoteIPAddress,
+                          remotePort, connectionDescription, failureType }
+              DESCRIPTION
+                         "A connectionUp trap signifies that the sending
+                          protocol entity has not had contact from its peer
+                          within the required response time, and should be
+                          considered down. The business purpose for the
+                          connection is included in the message"
+              ::= { peerpairTraps 2 }
+
+          configError NOTIFICATION-TYPE
+              ENTERPRISE  peerpair
+              VARIABLES   { hostname, kvaddress, failureType }
+              DESCRIPTION
+                         "A configError trap signifies that the sending
+                          protocol entity could not load its configuration
+                          from the remote key-value store"
+              ::= { peerpairTraps 3 }
+
+
+          configError NOTIFICATION-TYPE
+              ENTERPRISE  peerpair
+              VARIABLES   { hostname, kvaddress, failureType }
+              DESCRIPTION
+                         "A configError trap signifies that the sending
+                          protocol entity could not load its configuration
+                          from the remote key-value store"
+              ::= { peerpairTraps 4 }
+
+          unknownPacket NOTIFICATION-TYPE
+              ENTERPRISE  peerpair
+              VARIABLES   { hostname, fromAddress, failureType }
+              DESCRIPTION
+                         "An unknownPacket trap signifies that the sending
+                          protocol entity received a packet that it cannot
+                          decode or correlate to a known test"
+              ::= { peerpairTraps 5 }
+              
+     END
+     
