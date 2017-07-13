@@ -6,10 +6,11 @@ tests. Sends SNMP traps.
 ## Principles
 * One-way testing, everyone should be ntp-synced.
 
-One way testing is better as many of the configurations we're testing
-are via LB/failover type IP connections with one client being routed
-to one of many servers. With one way testing we can make the client(s)
-send many packets and the each server only expect one.
+One way testing (expectation based) is better as many of the
+configurations we're testing are via LB/failover type IP connections
+with one client being routed to one of many servers. With one way
+testing we can make the client(s) send many packets and the each
+server only expect one periodically. 
 
 * Latency testing
 
@@ -40,11 +41,14 @@ for now, the security/DDoS risk will need to be managed in your environment.
 * An etcd cluster, with a v2 interface (http/JSON) enabled.
 * The ability to run the peerpair client on each machine, and have the ports
 opened towards each peer, and also access to the etcd cluster
-* An SNMP Trap agent, something like net-snmp's snmptrapd will work
-will if you don't already have HPOV or something of that ilk.
+* An SNMP Trap agent, something like net-SNMP's snmptrapd will work
+well if you don't already have HPOV or something of that ilk.
 
 ## Todo (in somewhat priority order)
 * configurator program/web interface for tests
+* differential reconfiguration - don't destroy listeners if those
+tests didn't change
+* listening conflicts where dns name and ip address resolve to same interface
 * https towards etcd
 * SNMPv3
 * etcd v3 interface

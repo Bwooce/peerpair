@@ -40,7 +40,7 @@ type Alarmer interface {
 type Commandline struct {
 	ConfigServer *string
 	LocalName    *string
-	SNMPServer   *string // used for problesms prior to getting real servername from configserver
+	SNMPServer   *string // used for problems prior to getting real servername from configserver
 }
 
 type GlobalConfig struct {
@@ -63,6 +63,7 @@ type HostConfig struct {
 	Version             int // monotonically increasing
 	Enabled             bool
 	SNMPServer          string
+	SNMPCommunity       string
 	NTPServer           string
 	MaxReportsPerSecond int
 	CachePeriodSeconds  int
@@ -134,7 +135,6 @@ func main() {
 
 	var isnmp *Snmper
 	if *cl.SNMPServer != "" {
-
 		server, sport, err := net.SplitHostPort(*cl.SNMPServer)
 		var port int
 		if err != nil {
@@ -143,7 +143,7 @@ func main() {
 			port, _ = strconv.Atoi(sport)
 		}
 
-		isnmp, err = snmpLogInit(server, uint16(port))
+		isnmp, err = snmpLogInit(server, uint16(port), "public")
 		if err != nil {
 			log.Fatal("SNMP connection error to", *cl.SNMPServer)
 		}
@@ -173,7 +173,7 @@ func main() {
 		port, _ = strconv.Atoi(sport)
 	}
 	var snmp *Snmper
-	snmp, err = snmpLogInit(server, uint16(port))
+	snmp, err = snmpLogInit(server, uint16(port), hc.SNMPCommunity)
 	defer snmp.Conn.Close()
 	if err != nil {
 		// TODO SNMP error trap
@@ -238,10 +238,10 @@ func main() {
 				if err != nil {
 					log.Info("Test", hc.Tests[uuid].T.Description, "failed with error", err)
 					hc.Tests[uuid].LastError = time.Now()
-					hc.Tests[uuid].NextTest = time.Now().Add(time.Duration(hc.Tests[uuid].T.FreqRetrySeconds) * time.Second)
+					hc.Tests[uuid].NextTest = time.Now().Add(time.Duration((hc.Tests[uuid].T.FreqRetrySeconds/2)) * time.Second)
 				} else {
 					hc.Tests[uuid].LastPacket = time.Now()
-					hc.Tests[uuid].NextTest = time.Now().Add(time.Duration(hc.Tests[uuid].T.FreqSeconds) * time.Second)
+					hc.Tests[uuid].NextTest = time.Now().Add(time.Duration(hc.Tests[uuid].T.FreqSeconds/2) * time.Second)
 				}
 				hc.Lock.Unlock()
 			}
@@ -253,8 +253,9 @@ func main() {
 			case p := <-main:
 				// no need to lock as only this loop is writing, and any conflict results in an acceptable outcome
 				t, ok := hc.Tests[p.TestId]
-				if !ok || p.HostId == *cl.LocalName {
+				if !ok || p.HostId != *cl.LocalName {
 					log.Error("Invalid test packet received, Id:", p.TestId, "for host:", p.HostId)
+					snmp.UnknownPacket(*cl.LocalName, t.T.From, "No matching test for packet")
 					continue
 				}
 				ts := time.Now()
@@ -270,7 +271,7 @@ func main() {
 					}
 				}
 				t.LastPacket = ts
-				t.NextTest = ts.Add(time.Duration(t.T.FreqSeconds) * time.Second) // reset the due time
+				t.NextTest = ts.Add(time.Duration(t.T.FreqSeconds) * time.Second) // reset the due time // TODO doesn't work for loopback tests...
 			default:
 				found = false
 				break
@@ -499,9 +500,10 @@ func listenForPackets(proto, addr string, die chan bool, main chan PeerTestPacke
 		default:
 		}
 		u.SetReadDeadline(time.Now().Add(1 * time.Second))
-		_, raddr, err := u.ReadFromUDP(buf)
+		len, raddr, err := u.ReadFromUDP(buf)
 		if err == nil {
-			if err := json.Unmarshal(buf, &p); err != nil {
+			if err := json.Unmarshal(buf[:len], &p); err != nil {
+				log.Info(buf[:len])
 				log.Error("Undecodable packet from", raddr.String(), "to", u.LocalAddr().String(), "error decoding", err)
 			}
 			main <- p
@@ -518,8 +520,9 @@ func goAlarmOnOverdue(cl Commandline, gc *GlobalConfig, hc *HostConfig, a Alarme
 			hc.Lock.Lock() // avoid the tests changing under our feet
 			for _, t := range hc.Tests {
 				if t.T.ToHostId == *cl.LocalName && t.T.Enabled {
-					//log.Info("Checking for packets for test", t.T.Id, t.T.Description, "expires in", t.NextTest.Sub(time.Now()).Seconds())
+					//
 					if !t.OutOfService && t.NextTest.Before(time.Now()) {
+                       log.Info("Checking for packets for test", t.T.Id, t.T.Description, "expires in", t.NextTest.Sub(time.Now()).Seconds())
 						a.ConnectionDown(*cl.LocalName, t.T.From, t.T.To, t.T.Description, fmt.Sprintf("Timeout, no packet received in %d seconds", t.T.FreqSeconds))
 						t.OutOfService = true
 						t.LastError = time.Now()

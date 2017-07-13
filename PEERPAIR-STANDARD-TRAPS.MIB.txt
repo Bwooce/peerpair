@@ -66,13 +66,13 @@ peerpairTraps OBJECT IDENTIFIER ::= { peerpair 1 }
               ::= { peerpairTraps 3 }
 
 
-          configError NOTIFICATION-TYPE
+          configRead NOTIFICATION-TYPE
               ENTERPRISE  peerpair
-              VARIABLES   { hostname, kvaddress, failureType }
+              VARIABLES   { hostname, kvaddress }
               DESCRIPTION
-                         "A configError trap signifies that the sending
-                          protocol entity could not load its configuration
-                          from the remote key-value store"
+                         "A configRead trap signifies that the sending
+                          protocol entity could load its configuration
+                          from the remote key-value store (error cleared)"
               ::= { peerpairTraps 4 }
 
           unknownPacket NOTIFICATION-TYPE
